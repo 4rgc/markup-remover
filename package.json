@@ -1,0 +1,22 @@
+{
+  "name": "redesigned-octo-umbrella",
+  "version": "1.0.0",
+  "description": "Test.",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha --reporter Landing"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/4rgc/redesigned-octo-umbrella.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/4rgc/redesigned-octo-umbrella/issues"
+  },
+  "homepage": "https://github.com/4rgc/redesigned-octo-umbrella#readme"
+}
