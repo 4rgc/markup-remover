@@ -1,20 +1,30 @@
+const markupInvalidError = require('./markupInvalidError')
+
 class MarkupRemover {
     static openBracketIndex = 0
     static closeBracketIndex = 0
+    static originalText
     static buffer = ''
+    static errorIndex
+    
     static removeMarkup(markedText, splitter = '') {
+        this.originalText = markedText
         this.buffer = markedText
-        while(this.isMarkupPresent()) {
-            this.findClosestMarkupIndices()
-            if(!this.isMarkupValid())
-                throw 'The markup is invalid'
+        while(this.isMarkupPresentAndValid()) {
             this.removeClosestMarkup(splitter)
         }
         return this.buffer
     }
 
-    static isMarkupPresent() {
-        return this.buffer.indexOf('<') != -1 || this.buffer.indexOf('>') != -1
+    static isMarkupPresentAndValid() {
+        this.findClosestMarkupIndices()
+        if(!this.isMarkupPresent())
+            return false
+        if(!this.isMarkupValid()) {
+            let errorLocation = this.countLinesAndCharacters()
+                throw new markupInvalidError('The markup is invalid', errorLocation.line, errorLocation.character)
+        }
+        return true
     }
 
     static findClosestMarkupIndices() {
@@ -22,35 +32,84 @@ class MarkupRemover {
         this.closeBracketIndex = this.buffer.indexOf('>')
     }
 
-    static isMarkupValid() {
-        if(this.isOneBracketMissing())
-            return false
-        if(this.closeBracketIndex < this.openBracketIndex)
-            return false
-        if(this.containsBracketsInBrackets())
-            return false
-        return true;    
-    }
-
-    static isOneBracketMissing() {
-        return (this.isOpenBracketFound() && !this.isCloseBracketFound()) ||
-            (!this.isOpenBracketFound() && this.isCloseBracketFound())
-    }
-
-    static isCloseBracketFound() {
-        return this.closeBracketIndex != -1
+    static isMarkupPresent() {
+        return this.isOpenBracketFound() || this.isCloseBracketFound()
     }
 
     static isOpenBracketFound() {
         return this.openBracketIndex != -1
     }
 
-    static containsBracketsInBrackets() {
+    static isCloseBracketFound() {
+        return this.closeBracketIndex != -1
+    }
+
+    static isMarkupValid() {
+        if(this.isOneBracketMissing()) {
+            this.errorIndex = this.oneBracketMissingErrorIndex()
+            return false
+        }
+        if(this.startsWithCloseBracket()) {
+            this.errorIndex = MarkupRemover.startsWithCloseBracketErrorIndex()
+            return false
+        }
+        if(this.containsDoubleBrackets()) {
+            this.errorIndex = MarkupRemover.doubleBracketsErrorIndex()
+            return false
+        }
+        return true   
+    }
+
+    static isOneBracketMissing() {
+        if( this.isOpenBracketFound() && !this.isCloseBracketFound()|| 
+           (!this.isOpenBracketFound() && this.isCloseBracketFound()) )
+            return true
+        return false
+    }
+
+    
+
+    static oneBracketMissingErrorIndex() {
+        if (!this.isOpenBracketFound()) {
+            return this.closeBracketIndex
+        }
+        else {
+            return this.openBracketIndex
+        }
+    }
+
+    static startsWithCloseBracket() {
+        return this.closeBracketIndex < this.openBracketIndex
+    }
+
+    static startsWithCloseBracketErrorIndex() {
+        return this.closeBracketIndex
+    }
+
+    static containsDoubleBrackets() {
         for(let i = this.openBracketIndex + 1; i < this.closeBracketIndex; i++) {
-            if(this.buffer[i] == '<' || this.buffer[i] == '>')
+            if(this.buffer[i] == '<')
                 return true
         }
         return false
+    }
+
+    static doubleBracketsErrorIndex() {
+        return this.openBracketIndex
+    }
+
+    static countLinesAndCharacters() {
+        let originalIndex = this.originalText.lastIndexOf(this.buffer.substring(this.errorIndex))
+        let lineBreakCount = 0
+        let characterInLineCount = 0
+        for(let i = 0; i < originalIndex; i++) {
+            characterInLineCount++
+            if(this.originalText[i] == '\n') { 
+                lineBreakCount++
+                characterInLineCount = 0
+            }
+        }
+        return {line: lineBreakCount + 1, character: characterInLineCount + 1}
     }
 
     static removeClosestMarkup(splitter) {
