@@ -8,7 +8,7 @@ describe('Error tests', () => {
             markupRemover.removeMarkup('asdasdb>text</b>','')
         }
         catch(e) {
-            assert.deepEqual(e, new markupInvalidError('The markup is invalid', 1, 8))
+            assert.deepStrictEqual(e, new markupInvalidError('The markup is invalid', 1, 8))
         }
     })
     it('should throw "The markup is invalid", line 1, char 1', () => {
@@ -16,7 +16,7 @@ describe('Error tests', () => {
             markupRemover.removeMarkup('<btext</b>','')
         }
         catch(e) {
-            assert.deepEqual(e, new markupInvalidError('The markup is invalid', 1, 1))
+            assert.deepStrictEqual(e, new markupInvalidError('The markup is invalid', 1, 1))
         }
     })
     it('should throw "The markup is invalid", line 1, char 5', () => {
@@ -24,7 +24,7 @@ describe('Error tests', () => {
             markupRemover.removeMarkup('asda<<b>', '')
         }
         catch(e) {
-            assert.deepEqual(e, new markupInvalidError('The markup is invalid', 1, 5))
+            assert.deepStrictEqual(e, new markupInvalidError('The markup is invalid', 1, 5))
         }
     })
     it('should throw "The markup is invalid", line 1, char 28', () => {
@@ -32,7 +32,7 @@ describe('Error tests', () => {
             markupRemover.removeMarkup('<b>B</b>ruh <b>B</b>ruh <b>>', '')
         }
         catch(e) {
-            assert.deepEqual(e, new markupInvalidError('The markup is invalid', 1, 28))
+            assert.deepStrictEqual(e, new markupInvalidError('The markup is invalid', 1, 28))
         }
     })
     it('should throw "The markup is invalid", line 1, char 25', () => {
@@ -40,7 +40,7 @@ describe('Error tests', () => {
             markupRemover.removeMarkup('<b>B</b>ruh <b>B</b>ruh <<b>', '')
         }
         catch(e) {
-            assert.deepEqual(e, new markupInvalidError('The markup is invalid', 1, 25))
+            assert.deepStrictEqual(e, new markupInvalidError('The markup is invalid', 1, 25))
         }
     })
 })

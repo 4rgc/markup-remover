@@ -8,8 +8,8 @@ describe('Integrated tests', () => {
         assert.strictEqual(markupRemover.removeMarkup('<b>abc</b>', '\n'), 'abc')
     })
 
-    it('should return "bbb"', () => {
-        assert.strictEqual(markupRemover.removeMarkup('<i>bbb</i>', '\n'), 'bbb')
+    it('should return "B\truh asd\t\tbbb\t"', () => {
+        assert.strictEqual(markupRemover.removeMarkup('<b>B</b>ruh asd<b><i>bbb</i></b>', '\t'), 'B\truh asd\t\tbbb\t')
     }),
 
     it(`should return "

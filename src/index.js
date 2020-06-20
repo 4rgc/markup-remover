@@ -3,9 +3,9 @@ const markupInvalidError = require('./markupInvalidError')
 class MarkupRemover {
     static openBracketIndex = 0
     static closeBracketIndex = 0
-    static originalText
+    static originalText = ''
     static buffer = ''
-    static errorIndex
+    static errorIndex = 0
     
     static removeMarkup(markedText, splitter = '') {
         this.originalText = markedText
@@ -61,13 +61,11 @@ class MarkupRemover {
     }
 
     static isOneBracketMissing() {
-        if( this.isOpenBracketFound() && !this.isCloseBracketFound()|| 
-           (!this.isOpenBracketFound() && this.isCloseBracketFound()) )
+        if( (this.isOpenBracketFound() && !this.isCloseBracketFound()) || 
+            (!this.isOpenBracketFound() && this.isCloseBracketFound()) )
             return true
         return false
     }
-
-    
 
     static oneBracketMissingErrorIndex() {
         if (!this.isOpenBracketFound()) {
