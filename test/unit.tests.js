@@ -1,297 +1,386 @@
 const assert = require('assert');
-const markupRemover = require('../src/index')
+const markupRemover = require('../src/markupRemover')
+const markupParser = require('../src/markupParser')
 
 describe('Unit tests', () => {
-    describe('#isMarkupPresentAndValid()', () => {
-        it('should return true', () => {
-            markupRemover.buffer = 'asdd<b>adfbs'
 
-            assert.strictEqual(
-                markupRemover.isMarkupPresentAndValid(), true
-            )
+    describe('MarkupParser', () => {
+        describe('#isMarkupParseable()', () => {
+            it('should return true', () => {
+                let mp = new markupParser('<b>asd</b>')
+
+                assert.strictEqual(mp.isMarkupParseable(), true)
+            })
+            it('should return true', () => {
+                let mp = new markupParser('<b><i>asd</b></i>')
+
+                assert.strictEqual(mp.isMarkupParseable(), true)
+            })
+            it('should return false', () => {
+                let mp = new markupParser('<b>asd<<b>')
+
+                assert.strictEqual(mp.isMarkupParseable(), false)
+            })
+            it('should return false', () => {
+                let mp = new markupParser('<b>B</b>ruh <b>B</b>ruh <<b>')
+
+                assert.strictEqual(mp.isMarkupParseable(), false)
+            })
+            it('should return false', () => {
+                let mp = new markupParser('<b>B</b>ruh <b>B</b>ruh <b>>')
+
+                assert.strictEqual(mp.isMarkupParseable(), false)
+            })
         })
-        it('should return true', () => {
-            markupRemover.buffer = 
+
+        describe('#isMarkupPresent()', () => {
+            it('should return true', () => {
+                let mp = new markupParser('asd<b')
+
+                assert.strictEqual(mp.isMarkupPresent(), true)
+            })
+            it('should return true', () => {
+                let mp = new markupParser('>asd')
+
+                assert.strictEqual(mp.isMarkupPresent(), true)
+            })
+            it('should return true', () => {
+                let mp = new markupParser('<b>B</b>')
+
+                assert.strictEqual(mp.isMarkupPresent(), true)
+            })
+            it('should return false', () => {
+                let mp = new markupParser('asd');
+
+                assert.strictEqual(mp.isMarkupPresent(), false)
+            })
+        })
+
+        describe('#markupStartsWithCloseBracket()', () => {
+            it('should return true', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['>', 'b>B', '/b>ruh']
+
+                assert.strictEqual(mp.markupStartsWithCloseBracket(), true)
+            })
+            it('should return false', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'b>B', '/b>ruh']
+
+                assert.strictEqual(mp.markupStartsWithCloseBracket(), false)
+            })
+            it('should return false', () => {
+                let mp = new markupParser('asd<b>B<</b>ruh')
+                mp.tagSplits = ['asd', 'b>B', '', '/b>ruh']
+
+                assert.strictEqual(mp.markupStartsWithCloseBracket(), false)
+            })
+        })
+
+        describe('#markupHasDuplicateOrNoCloseBrackets()', () => {
+            it('should return true', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'b>B', '/b ruh']
+
+                assert.strictEqual(mp.markupHasDuplicateOrNoCloseBrackets(), true)
+            })
+            it('should return true', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'b>B', '/b>ruh>', 'i>wut', '/i>']
+
+                assert.strictEqual(mp.markupHasDuplicateOrNoCloseBrackets(), true)
+            })
+            it('should return false', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['<', 'b>B', '/b>ruh', 'i>wut', '/i>']
+            
+                assert.strictEqual(mp.markupHasDuplicateOrNoCloseBrackets(), false)
+            })
+            it('should return false', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['bsdfh', 'b>B', '/b>ruh', 'i>wut', '/i>']
+            
+                assert.strictEqual(mp.markupHasDuplicateOrNoCloseBrackets(), false)
+            })
+        })
+
+        describe('#tagHasNoClosingBracket(index)', () => {
+            it('should return true', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'b>B', '/b ruh']
+
+                assert.strictEqual(mp.tagHasNoClosingBracket(2), true)
+            })  
+            it('should return false', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'bruh>']
+
+                assert.strictEqual(mp.tagHasNoClosingBracket(1), false)
+            })
+        })
+
+        describe('#tagHasDuplicateClosingBrackets(index)', () => {
+            it('should return true', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'bruh>>']
+
+                assert.strictEqual(mp.tagHasDuplicateClosingBrackets(1), true)
+            })
+            it('should return true', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', '>>bruh>>']
+
+                assert.strictEqual(mp.tagHasDuplicateClosingBrackets(1), true)
+            })
+            it('should return false', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'bruh>']
+
+                assert.strictEqual(mp.tagHasDuplicateClosingBrackets(1), false)
+            })
+            it('should return false', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'bruh']
+
+                assert.strictEqual(mp.tagHasDuplicateClosingBrackets(1), false)
+            })
+        })
+
+        describe('#invalidMarkupIndex', () => {
+            it('should be equal -1', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'b>B', '/b>ruh']
+                mp.markupStartsWithCloseBracket()
+
+                assert.strictEqual(mp.invalidMarkupIndex, -1)
+            })
+            it('should be equal 3', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['asd>', 'b>B', '/b>ruh']
+                mp.markupStartsWithCloseBracket()
+
+                assert.strictEqual(mp.invalidMarkupIndex, 3)
+            })
+            it('should be equal -1', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'b>B', '/b>ruh']
+                mp.markupHasDuplicateOrNoCloseBrackets()
+
+                assert.strictEqual(mp.invalidMarkupIndex, -1)
+            })
+            it('should be equal 3', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'b>>B', '/b>ruh']
+                mp.markupHasDuplicateOrNoCloseBrackets()
+
+                assert.strictEqual(mp.invalidMarkupIndex, 3)
+            })
+            it('should be equal 0', () => {
+                let mp = new markupParser()
+                mp.tagSplits = ['', 'bB', '/b>ruh']
+                mp.markupHasDuplicateOrNoCloseBrackets()
+
+                assert.strictEqual(mp.invalidMarkupIndex, 0)
+            })
+        })
+
+        describe('#tagIndexInOriginalText(index)', () => {
+            it('should return 4', () => {
+                let mp = new markupParser() 
+                mp.tagSplits = ['', 'b>B', '/b>ruh']
+
+                assert.strictEqual(mp.tagIndexInOriginalText(2), 4)
+            })
+            it('should return 0', () => {
+                let mp = new markupParser() 
+                mp.tagSplits = ['', 'b>B', '/b>ruh']
+
+                assert.strictEqual(mp.tagIndexInOriginalText(1), 0)
+            })
+        })
+    })
+
+
+    describe('MarkupRemover', () => {
+        describe('#isMarkupPresentAndParseable()', () => {
+            it('should return true', () => {
+                let mr = new markupRemover('asdd<b>adfbs');
+
+                assert.strictEqual(
+                    mr.isMarkupPresentAndParseable(), true
+                )
+            })
+            it('should return true', () => {
+                let mr = new markupRemover(
 `<asddadfbs>
 <>asddsdsdsd<>
 asdsd<>`
+                );
 
-            assert.strictEqual(
-                markupRemover.isMarkupPresentAndValid(), true
-            )
+                assert.strictEqual(
+                    mr.isMarkupPresentAndParseable(), true
+                )
+            })
+            it('should return false', () => {
+                let mr = new markupRemover();
+                mr.originalText = ''
+
+                assert.strictEqual(
+                    mr.isMarkupPresentAndParseable(), false
+                )
+            })
+            it('should return false', () => {
+                let mr = new markupRemover();
+                mr.originalText = 'asdd<badfbs'
+
+                assert.strictEqual(
+                    mr.isMarkupPresentAndParseable(), false
+                )
+            })
+            it('should return false', () => {
+                let mr = new markupRemover();
+                mr.originalText = 'asdav'
+
+                assert.strictEqual(
+                    mr.isMarkupPresentAndParseable(), false
+                )
+            })
         })
-        it('should return false', () => {
-            markupRemover.buffer = ''
 
-            assert.strictEqual(
-                markupRemover.isMarkupPresentAndValid(), false
-            )
+        describe('#findClosestMarkupIndices()', () => {
+            it('should set openBracketIndex to 3', () => {
+                let mr = new markupRemover();
+                mr.buffer = '012<'
+                mr.findClosestMarkupIndices()
+
+                assert.strictEqual(
+                    mr.openBracketIndex, 3
+                )
+            })
+            it('should set closeBracketIndex to -1', () => {
+                let mr = new markupRemover();
+                mr.buffer = '012<'
+                mr.findClosestMarkupIndices()
+
+                assert.strictEqual(
+                    mr.closeBracketIndex, -1
+                )
+            })
+            it('should set openBracketIndex to 3', () => {
+                let mr = new markupRemover();
+                mr.buffer = '012<>'
+                mr.findClosestMarkupIndices()
+
+                assert.strictEqual(
+                    mr.openBracketIndex, 3
+                )
+            })
+            it('should set closeBracketIndex to 4', () => {
+                let mr = new markupRemover();
+                mr.buffer = '012<>'
+                mr.findClosestMarkupIndices()
+
+                assert.strictEqual(
+                    mr.closeBracketIndex, 4
+                )
+            })
         })
-        it('should return false', () => {
-            markupRemover.buffer = 'asdav'
 
-            assert.strictEqual(
-                markupRemover.isMarkupPresentAndValid(), false
-            )
+        describe('#countLinesAndCharacters()', () => {
+            it('should return {line 1, char 4}', () => {
+                let mr = new markupRemover();
+                mr.originalText = '<b>>'
+                mr.buffer = '>'
+
+                assert.deepStrictEqual(
+                    mr.countLinesAndCharacters(0), {line: 1, character: 4}
+                )
+            })
+            it('should return {line 1, char 5}', () => {
+                let mr = new markupRemover();
+                mr.originalText = '<br><<b>'
+                mr.buffer = 'asd<<b>'
+
+                assert.deepStrictEqual(
+                    mr.countLinesAndCharacters(3), {line: 1, character: 5}
+                )
+            })
         })
-    })
 
-    describe('#isMarkupPresent()', () => {
-        it('should return true', () => {
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = -1
-
-            assert.strictEqual(
-                markupRemover.isMarkupPresent(), true
-            )
+        describe('#removeClosestMarkup()', () => {
+            it('should set buffer to "Bruh"', () => {
+                let mr = new markupRemover('<b>Bruh', '');
+                mr.openBracketIndex = 0
+                mr.closeBracketIndex = 2
+                mr.removeClosestMarkup()
+                
+                assert.strictEqual(mr.buffer, 'Bruh')
+            })
+            it('should set buffer to "Bruh Bruh"', () => {
+                let mr = new markupRemover('Bruh <b>Bruh', '');
+                mr.openBracketIndex = 5
+                mr.closeBracketIndex = 7
+                mr.removeClosestMarkup()
+                
+                assert.strictEqual(mr.buffer, 'Bruh Bruh')
+            })
+            it('should set buffer to "Bruh"', () => {
+                let mr = new markupRemover('<b>Bruh', 'asd');
+                mr.openBracketIndex = 0
+                mr.closeBracketIndex = 2
+                mr.removeClosestMarkup()
+                
+                assert.strictEqual(mr.buffer, 'Bruh')
+            })
+            it('should set buffer to "Bruh asd Bruh"', () => {
+                let mr = new markupRemover('Bruh <b>Bruh', 'asd ');
+                mr.openBracketIndex = 5
+                mr.closeBracketIndex = 7
+                mr.removeClosestMarkup()
+                
+                assert.strictEqual(mr.buffer, 'Bruh asd Bruh')
+            })
+            it('should set buffer to "Bruh"', () => {
+                let mr = new markupRemover('Bruh', '');
+                mr.openBracketIndex = -1
+                mr.closeBracketIndex = -1
+                mr.removeClosestMarkup()
+                
+                assert.strictEqual(mr.buffer, 'Bruh')
+            })
         })
-        it('should return true', () => {
-            markupRemover.openBracketIndex = -1
-            markupRemover.closeBracketIndex = 0
 
-            assert.strictEqual(
-                markupRemover.isMarkupPresent(), true
-            )
-        })
-        it('should return true', () => {
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = 2
+        describe('#closestMarkupFound()', () => {
+            it('should return true', () => {
+                let mr = new markupRemover()
+                mr.openBracketIndex = 0
+                mr.closeBracketIndex = 0
 
-            assert.strictEqual(
-                markupRemover.isMarkupPresent(), true
-            )
-        })
-        it('should return false', () => {
-            markupRemover.openBracketIndex = -1
-            markupRemover.closeBracketIndex = -1
+                assert.strictEqual(mr.closestMarkupFound(), true)
+            })
+            it('should return false', () => {
+                let mr = new markupRemover()
+                mr.openBracketIndex = -1
+                mr.closeBracketIndex = 0
 
-            assert.strictEqual(
-                markupRemover.isMarkupPresent(), false
-            )
-        })
-    })  
+                assert.strictEqual(mr.closestMarkupFound(), false)
+            })
+            it('should return true', () => {
+                let mr = new markupRemover()
+                mr.openBracketIndex = 0
+                mr.closeBracketIndex = -1
 
-    describe('#findClosestMarkupIndices()', () => {
-        it('should set openBracketIndex to 3', () => {
-            markupRemover.buffer = '012<'
-            markupRemover.findClosestMarkupIndices()
+                assert.strictEqual(mr.closestMarkupFound(), false)
+            })
+            it('should return true', () => {
+                let mr = new markupRemover()
+                mr.openBracketIndex = -1
+                mr.closeBracketIndex = -1
 
-            assert.strictEqual(
-                markupRemover.openBracketIndex, 3
-            )
-        })
-        it('should set closeBracketIndex to -1', () => {
-            markupRemover.buffer = '012<'
-            markupRemover.findClosestMarkupIndices()
-
-            assert.strictEqual(
-                markupRemover.closeBracketIndex, -1
-            )
-        })
-        it('should set openBracketIndex to 3', () => {
-            markupRemover.buffer = '012<>'
-            markupRemover.findClosestMarkupIndices()
-
-            assert.strictEqual(
-                markupRemover.openBracketIndex, 3
-            )
-        })
-        it('should set closeBracketIndex to 4', () => {
-            markupRemover.buffer = '012<>'
-            markupRemover.findClosestMarkupIndices()
-
-            assert.strictEqual(
-                markupRemover.closeBracketIndex, 4
-            )
-        })
-    })
-
-    describe('#isMarkupValid()', () => {
-        it('should return true', () => {
-            markupRemover.buffer = '<b>'
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = 2
-
-            assert.strictEqual(
-                markupRemover.isMarkupValid(), true
-            )
-        })
-        it('should return true', () => {
-            markupRemover.buffer = '<b>B</b>ruh bruhbruh br<b>uh</b>'
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = 2
-
-            assert.strictEqual(
-                markupRemover.isMarkupValid(), true
-            )
-        })
-        it('should return false', () => {
-            markupRemover.buffer = '<<b>'
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = 3
-
-            assert.strictEqual(
-                markupRemover.isMarkupValid(), false
-            )
-        })
-        it('should return false', () => {
-            markupRemover.buffer = 'b>'
-            markupRemover.openBracketIndex = -1
-            markupRemover.closeBracketIndex = 1
-
-            assert.strictEqual(
-                markupRemover.isMarkupValid(), false
-            )
-        })
-        it('should return false', () => {
-            markupRemover.buffer = '<b'
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = -1
-
-            assert.strictEqual(
-                markupRemover.isMarkupValid(), false
-            )
-        })
-        it('should return false', () => {
-            markupRemover.buffer = 'b> <i>asgadf</i>'
-            markupRemover.openBracketIndex = -1
-            markupRemover.closeBracketIndex = 1
-            
-            assert.strictEqual(
-                markupRemover.isMarkupValid(), false
-            )
-        })
-    })
-
-    describe('#isOneBracketMissing()', () => {
-        it('should return false', () => {
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = 2
-
-            assert.strictEqual(
-                markupRemover.isOneBracketMissing(), false
-            )
-        })
-        it('should return false', () => {
-            markupRemover.openBracketIndex = -1
-            markupRemover.closeBracketIndex = -1
-
-            assert.strictEqual(
-                markupRemover.isOneBracketMissing(), false
-            )
-        })
-        it('should return true', () => {
-            markupRemover.openBracketIndex = -1
-            markupRemover.closeBracketIndex = 2
-
-            assert.strictEqual(
-                markupRemover.isOneBracketMissing(), true
-            )
-        })
-        it('should return true', () => {
-            markupRemover.openBracketIndex = 1
-            markupRemover.closeBracketIndex = -1
-
-            assert.strictEqual(
-                markupRemover.isOneBracketMissing(), true
-            )
+                assert.strictEqual(mr.closestMarkupFound(), false)
+            })
         })
     })
 
-    describe('#oneBracketMissingErrorIndex()', () => {
-        it('should return 2', () => {
-            markupRemover.openBracketIndex = -1
-            markupRemover.closeBracketIndex = 2
-            
-            assert.strictEqual(
-                markupRemover.oneBracketMissingErrorIndex(), 2
-            )
-        })
-        it('should return 0', () => {
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = -1
-            
-            assert.strictEqual(
-                markupRemover.oneBracketMissingErrorIndex(), 0
-            )
-        })
-    })
-
-    describe('#containsDoubleBrackets()', () => {
-        it('should return true', () => {
-            markupRemover.buffer = '<<b>'
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = 3
-
-            assert.strictEqual(
-                markupRemover.containsDoubleBrackets(), true
-            )
-        })
-        it('should return false', () => {
-            markupRemover.buffer = '<b><i></i></b>'
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = 2
-
-            assert.strictEqual(
-                markupRemover.containsDoubleBrackets(), false
-            )
-        })
-    })
-
-    describe('#countLinesAndCharacters()', () => {
-        it('should return {line 1, char 4}', () => {
-            markupRemover.originalText = '<b>>'
-            markupRemover.buffer = '>'
-            markupRemover.errorIndex = 0
-
-            assert.deepStrictEqual(
-                markupRemover.countLinesAndCharacters(), {line: 1, character: 4}
-            )
-        })
-        it('should return {line 1, char 5}', () => {
-            markupRemover.originalText = '<br><<b>'
-            markupRemover.buffer = 'asd<<b>'
-            markupRemover.errorIndex = 3
-
-            assert.deepStrictEqual(
-                markupRemover.countLinesAndCharacters(), {line: 1, character: 5}
-            )
-        })
-    })
-
-    describe('#removeClosestMarkup()', () => {
-        it('should set buffer to "Bruh"', () => {
-            markupRemover.buffer = '<b>Bruh'
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = 2
-            markupRemover.removeClosestMarkup('')
-            
-            assert.strictEqual(markupRemover.buffer, 'Bruh')
-        })
-        it('should set buffer to "Bruh Bruh"', () => {
-            markupRemover.buffer = 'Bruh <b>Bruh'
-            markupRemover.openBracketIndex = 5
-            markupRemover.closeBracketIndex = 7
-            markupRemover.removeClosestMarkup('')
-            
-            assert.strictEqual(markupRemover.buffer, 'Bruh Bruh')
-        })
-        it('should set buffer to "Bruh"', () => {
-            markupRemover.buffer = '<b>Bruh'
-            markupRemover.openBracketIndex = 0
-            markupRemover.closeBracketIndex = 2
-            markupRemover.removeClosestMarkup('asd')
-            
-            assert.strictEqual(markupRemover.buffer, 'Bruh')
-        })
-        it('should set buffer to "Bruh asd Bruh"', () => {
-            markupRemover.buffer = 'Bruh <b>Bruh'
-            markupRemover.openBracketIndex = 5
-            markupRemover.closeBracketIndex = 7
-            markupRemover.removeClosestMarkup('asd ')
-            
-            assert.strictEqual(markupRemover.buffer, 'Bruh asd Bruh')
-        })
-    })
 })
 

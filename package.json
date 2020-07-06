@@ -2,7 +2,7 @@
   "name": "redesigned-octo-umbrella",
   "version": "1.0.0",
   "description": "Test.",
-  "main": "index.js",
+  "main": "markupRemover.js",
   "directories": {
     "test": "test"
   },

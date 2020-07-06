@@ -1,15 +1,19 @@
 const assert = require('assert');
-const markupRemover = require('../src/index')
+const markupRemover = require('../src/markupRemover')
 
 
 describe('Integrated tests', () => {
 
     it('should return "abc"', () => {
-        assert.strictEqual(markupRemover.removeMarkup('<b>abc</b>', '\n'), 'abc')
+        let mr = new markupRemover('<b>abc</b>', '\n')
+
+        assert.strictEqual(mr.removeMarkup(), 'abc')
     })
 
     it('should return "B\truh asd\t\tbbb\t"', () => {
-        assert.strictEqual(markupRemover.removeMarkup('<b>B</b>ruh asd<b><i>bbb</i></b>', '\t'), 'B\truh asd\t\tbbb\t')
+        let mr = new markupRemover('<b>B</b>ruh asd<b><i>bbb</i></b>', '\t')
+
+        assert.strictEqual(mr.removeMarkup(), 'B\truh asd\t\tbbb\t')
     }),
 
     it(`should return "
@@ -24,8 +28,7 @@ describe('Integrated tests', () => {
     
     
     "`, () => {
-        assert.strictEqual(
-            markupRemover.removeMarkup(
+        let mr = new markupRemover(
 `<!DOCTYPE html>
 <html>
 <head>
@@ -38,8 +41,10 @@ describe('Integrated tests', () => {
 
 </body>
 </html>`,
-        ''
-        ), 
+                '')
+
+        assert.strictEqual(
+            mr.removeMarkup(), 
 `
 
 
