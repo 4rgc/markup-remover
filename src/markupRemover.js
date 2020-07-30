@@ -24,8 +24,8 @@ class MarkupRemover {
             } while(this.closestMarkupFound())
         }
         else {
-            let position = this.countLinesAndCharacters(this.mp.invalidMarkupIndex)
-            throw new markupInvalidError('The markup is invalid', position.line, position.character)
+            let position = this.mp.getErrorLocation()
+            this.reportMarkupValidationError(position)
         }
         return this.buffer
     }
@@ -53,19 +53,9 @@ class MarkupRemover {
     closestMarkupFound() {
         return this.openBracketIndex != -1 && this.closeBracketIndex != -1
     }
-    
-    countLinesAndCharacters(errorIndex) {
-        let originalIndex = this.originalText.lastIndexOf(this.buffer.substring(errorIndex))
-        let lineBreakCount = 0
-        let characterInLineCount = 0
-        for(let i = 0; i < originalIndex; i++) {
-            characterInLineCount++
-            if(this.originalText[i] == '\n') { 
-                lineBreakCount++
-                characterInLineCount = 0
-            }
-        }
-        return {line: lineBreakCount + 1, character: characterInLineCount + 1}
+
+    reportMarkupValidationError(position) {
+        throw new markupInvalidError('The markup is invalid', position.line, position.character)
     }
 }
 

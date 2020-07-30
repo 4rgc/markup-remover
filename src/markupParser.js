@@ -1,3 +1,8 @@
+class ErrorLocation {
+    line = 0
+    character = 0
+}
+
 class MarkupParser {
     text = ''
     tagSplits = []
@@ -68,6 +73,20 @@ class MarkupParser {
             return true
         }
         return false
+    }
+
+    getErrorLocation() {
+        let lineCnt = 1, charCnt = 0;
+        
+        for(let i = 0; i <= this.invalidMarkupIndex; i++) {
+            if(this.text[i] == '\n') {
+                lineCnt++
+                charCnt = 0
+            }
+            else 
+                charCnt++
+        }
+        return {line: lineCnt, character: charCnt}
     }
 }
 

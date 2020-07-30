@@ -1,6 +1,9 @@
 const assert = require('assert');
 const markupRemover = require('../src/markupRemover')
 const markupParser = require('../src/markupParser')
+const markupInvalidError = require('../src/markupInvalidError')
+const App = require('../src/App')
+const fs = require('fs')
 
 describe('Unit tests', () => {
 
@@ -198,6 +201,41 @@ describe('Unit tests', () => {
                 assert.strictEqual(mp.tagIndexInOriginalText(1), 0)
             })
         })
+
+        describe('getErrorLocation()', () => {
+            it('should return {line 1, char 4}', () => {
+                let mp = new markupParser('<b>>')
+                mp.invalidMarkupIndex = 3
+
+                assert.deepStrictEqual(
+                    mp.getErrorLocation(), {line: 1, character: 4}
+                )
+            })
+            it('should return {line 1, char 4}', () => {
+                let mp = new markupParser('<br><<b>')
+                mp.invalidMarkupIndex = 4
+
+                assert.deepStrictEqual(
+                    mp.getErrorLocation(), {line: 1, character: 5}
+                )
+            })
+            it('should return {line 2, char 0}', () => {
+                let mp = new markupParser('<b>\n')
+                mp.invalidMarkupIndex = 3
+
+                assert.deepStrictEqual(
+                    mp.getErrorLocation(), {line: 2, character: 0}
+                )
+            })
+            it('should return {line 2, char 1}', () => {
+                let mp = new markupParser('<br>\n<<b>')
+                mp.invalidMarkupIndex = 5
+
+                assert.deepStrictEqual(
+                    mp.getErrorLocation(), {line: 2, character: 1}
+                )
+            })
+        })
     })
 
 
@@ -286,27 +324,6 @@ asdsd<>`
             })
         })
 
-        describe('#countLinesAndCharacters()', () => {
-            it('should return {line 1, char 4}', () => {
-                let mr = new markupRemover();
-                mr.originalText = '<b>>'
-                mr.buffer = '>'
-
-                assert.deepStrictEqual(
-                    mr.countLinesAndCharacters(0), {line: 1, character: 4}
-                )
-            })
-            it('should return {line 1, char 5}', () => {
-                let mr = new markupRemover();
-                mr.originalText = '<br><<b>'
-                mr.buffer = 'asd<<b>'
-
-                assert.deepStrictEqual(
-                    mr.countLinesAndCharacters(3), {line: 1, character: 5}
-                )
-            })
-        })
-
         describe('#removeClosestMarkup()', () => {
             it('should set buffer to "Bruh"', () => {
                 let mr = new markupRemover('<b>Bruh', '');
@@ -380,7 +397,92 @@ asdsd<>`
                 assert.strictEqual(mr.closestMarkupFound(), false)
             })
         })
+
+        describe('#reportMarkupValidationError()', () => {
+            it('should throw "The markup is invalid", line 1, char 1',() => {
+                let mr = new markupRemover()
+                let pos = {line: 1, character: 1}
+
+                try {
+                    mr.reportMarkupValidationError(pos)
+                }
+                catch(e) {
+                    assert.deepStrictEqual(e, new markupInvalidError('The markup is invalid', 1, 1))
+                }
+            })
+
+            it('should throw "The markup is invalid", line 4, char 12',() => {
+                let mr = new markupRemover()
+                let pos = {line: 4, character: 12}
+
+                try {
+                    mr.reportMarkupValidationError(pos)
+                }
+                catch(e) {
+                    assert.deepStrictEqual(e, new markupInvalidError('The markup is invalid', 4, 12))
+                }
+            })
+        })
     })
 
+    describe('App', () => {
+        before(() => {
+            this.inputFilePath = '/Users/odmen/test.txt'
+            this.outputFilePath = '/Users/odmen/out_test.txt'
+            this.app = new App()
+        })  
+
+        describe('#readFile()', () => {
+            before(done => {
+                fs.writeFile(this.inputFilePath, 'asd', err => {
+                    if(err)
+                        throw err
+                    done()
+                })
+            })
+
+            it('should read asd', done => {
+                this.app.readFile(this.inputFilePath).then(res => {
+                    assert.strictEqual(res, 'asd')
+                    done()
+                })
+            })
+
+            after(done => {
+                fs.unlink(this.inputFilePath, err => {
+                    if(err)
+                        throw err
+                    done()
+                })
+            })
+        })
+        
+        describe('#writeResults()', () => {
+            before(() => {
+                this.outText = 'asd'
+                this.app.markupLessText = this.outText
+            })
+
+            it('should write asd out', done => {
+                this.app.writeResults(this.outputFilePath).then(() => {
+                    fs.readFile(this.outputFilePath, (err, data) => {
+                        if(err)
+                            throw err
+                        assert.strictEqual(data.toString(), this.outText)
+                        done()
+                    })
+                })
+            })
+
+            after(done => {
+                fs.unlink(this.outputFilePath, err => {
+                    if(err)
+                        throw err
+                    done()
+                })
+            })
+        })
+    })
+    
 })
 
